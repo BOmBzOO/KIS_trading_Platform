@@ -1,21 +1,26 @@
-# VI 트레이딩 시스템
+# VI 모니터링 프로그램
 
-한국투자증권 API를 활용한 VI(Volatility Interruption) 트레이딩 자동화 시스템입니다.
+한국투자증권 API를 활용한 VI(Volatility Interruption) 모니터링 프로그램입니다.
 
 ## 주요 기능
 
-- VI 발동 종목 실시간 감지
-- VI 해제 후 자동 매매 실행
-- 실시간 포지션 관리
-- Discord를 통한 알림
-- 계좌 모니터링
+- VI 발동/해제 실시간 모니터링
+- VI 종목 실시간 체결 정보 수신
+- 웹소켓을 통한 실시간 데이터 처리
+- 외부 서버 인증 및 계좌 정보 관리
+
+## 시스템 요구사항
+
+- Python 3.8 이상
+- 한국투자증권 실전/모의 계좌
+- 외부 인증 서버 접근 권한
 
 ## 설치 방법
 
 1. 저장소 클론
 ```bash
-git clone https://github.com/yourusername/vi-trading.git
-cd vi-trading
+git clone [repository_url]
+cd VI_trading
 ```
 
 2. 가상환경 생성 및 활성화
@@ -31,52 +36,39 @@ pip install -r requirements.txt
 ```
 
 4. 환경 변수 설정
-`.env` 파일을 생성하고 다음 정보를 입력합니다:
+`.env` 파일을 생성하고 다음 정보를 설정:
 ```
-APP_KEY=your_app_key
-APP_SECRET=your_app_secret
-DISCORD_WEBHOOK_URL=your_discord_webhook_url
+EXTERNAL_USERNAME=your_username
+EXTERNAL_PASSWORD=your_password
+CANO=your_account_number
 ```
 
-## 사용 방법
+## 실행 방법
 
-1. 프로그램 실행
 ```bash
 python main.py
 ```
 
-2. 로그 확인
-- `logs/trading.log` 파일에서 상세 로그 확인 가능
-- Discord를 통한 실시간 알림 수신
-
 ## 프로젝트 구조
 
 ```
-vi-trading/
-├── app/
-│   ├── api/           # API 관련 모듈
-│   ├── core/          # 핵심 기능 모듈
-│   ├── models/        # 데이터 모델
-│   ├── strategy/      # 트레이딩 전략
-│   └── utils/         # 유틸리티 함수
-├── logs/              # 로그 파일
-├── tests/             # 테스트 코드
-├── .env              # 환경 변수
-├── .gitignore        # Git 제외 파일
-├── main.py           # 메인 실행 파일
-├── README.md         # 프로젝트 설명
-└── requirements.txt   # 의존성 목록
+app/
+├── auth/               # 인증 관련 모듈
+├── common/             # 공통 유틸리티
+├── strategy/
+│   ├── base/          # 기본 전략 컴포넌트
+│   └── vi/            # VI 모니터링 전략
+└── main.py            # 메인 실행 파일
 ```
 
-## 주의사항
+## 로깅
 
-- 실제 거래 전에 충분한 테스트를 진행하세요.
-- API 키와 시크릿은 안전하게 관리하세요.
-- 거래에 따른 손실은 본인 책임입니다.
+- 로그 파일은 `logs/` 디렉토리에 저장됩니다.
+- 로그 레벨은 환경 변수 `LOG_LEVEL`로 설정 가능합니다.
 
 ## 라이선스
 
-이 프로젝트는 MIT 라이선스를 따릅니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+이 프로젝트는 MIT 라이선스를 따릅니다.
 
 ## 기여하기
 
