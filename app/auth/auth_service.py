@@ -193,7 +193,9 @@ class AuthService:
                 acnt_name=self.account_info.acnt_name,
                 owner_name=self.account_info.owner_name,
                 owner_id=self.account_info.owner_id,
-                id=self.account_info.id
+                id=self.account_info.id,
+                discord_webhook_url=self.account_info.discord_webhook_url,
+                is_active=self.account_info.is_active
             )
             self.logger.info(f"새로운 계좌 정보가 저장되었습니다. (계좌: {self.account_info.cano})")
             
