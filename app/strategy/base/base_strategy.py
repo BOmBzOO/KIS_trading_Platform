@@ -3,15 +3,27 @@
 from abc import ABC, abstractmethod
 import logging
 from typing import Any, Dict, Optional
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
+from app.auth.auth_service import AuthService
+from app.auth.models import AccountInfo
+from app.kis_api.websocket import KISWebSocketClient
+
+logger = logging.getLogger(__name__)
 
 class BaseStrategy(ABC):
     """전략 기본 클래스"""
     
-    def __init__(self, strategy_name: Optional[str] = None):
+    def __init__(
+            self, 
+            strategy_name: str = None,
+            account_info: AccountInfo = None
+        ):
         self.strategy_name = strategy_name or self.__class__.__name__
         self.logger = logging.getLogger(f"Strategy.{self.strategy_name}")
-        self.start_time = None
+        self.account_info = account_info
+        self.ws_client = KISWebSocketClient(account_info=self.account_info)
+        self.start_time = datetime.now(timezone(timedelta(hours=9)))  # 한국 시각으로 설정
+        self.running_time = None
         self.is_running = False
     
     @abstractmethod
@@ -35,6 +47,9 @@ class BaseStrategy(ABC):
         """전략 정리
         전략 종료 시 필요한 정리 작업을 수행합니다.
         """
+        await self.auth_service.close()
+        if self.ws_client:
+            await self.ws_client.disconnect()
         pass
         
     async def start(self) -> None:
@@ -58,10 +73,10 @@ class BaseStrategy(ABC):
             return
             
         try:
-            await self.cleanup()
             self.is_running = False
-            duration = datetime.now() - self.start_time if self.start_time else None
-            self.logger.info(f"{self.strategy_name} 전략이 종료되었습니다. 실행 시간: {duration}")
+            self.running_time = datetime.now(timezone(timedelta(hours=9))) - self.start_time
+            self.logger.info(f"전략이 종료되었습니다. (실행 시간: {self.running_time})")
+            await self.cleanup()
         except Exception as e:
             self.logger.error(f"전략 종료 중 오류 발생: {str(e)}")
             raise
@@ -72,5 +87,5 @@ class BaseStrategy(ABC):
             "name": self.strategy_name,
             "running": self.is_running,
             "start_time": self.start_time.isoformat() if self.start_time else None,
-            "running_time": str(datetime.now() - self.start_time) if self.start_time else None
-        } 
+            "running_time": str(self.running_time) if self.running_time else None
+        }

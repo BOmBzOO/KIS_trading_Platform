@@ -6,39 +6,30 @@ from typing import Any, Dict, Set
 from datetime import datetime
 from app.auth.models import AccountInfo
 from app.common.constants import VIConfig
-from app.auth.auth_service import AuthService
-from app.strategy.base.service.websocket import KISWebSocketClient
+from app.strategy.base.base_strategy import BaseStrategy
 
 logger = logging.getLogger(__name__)
 
-class VIMonitor:
+class VITrading(BaseStrategy):
     """VI 모니터링"""
     
-    def __init__(self):
-        """초기화"""
-        self.auth_service = AuthService()
-        self.ws_client = None
-        self.account_info = None
+    def __init__(
+            self,
+            strategy_name: str = None,
+            account_info: AccountInfo = None
+        ):
+        """초기화
+        
+        Args:
+            strategy_name: 전략 이름
+            account_info: 계좌 정보
+        """
+        super().__init__(strategy_name=strategy_name, account_info=account_info)
         self.active_symbols: Set[str] = set()
         self._closed = False
-        
+
     async def initialize(self):
-        """외부 서버 인증 및 계좌 정보 초기화"""
-        try:
-            # 1. 인증 서비스 초기화
-            await self.auth_service.initialize()
-            
-            # 2. 외부 서버 인증 및 계좌 정보 조회 (저장된 정보 사용 또는 새로운 인증)
-            self.account_info = await self.auth_service.authenticate()
-            logger.info(f"계좌 정보 로드 완료 (계좌: {self.account_info.cano})")
-            logger.info(f"계좌 타입: {'실전' if self.account_info.is_live else '모의'}")
-            
-            # 3. WebSocket 클라이언트 초기화
-            self.ws_client = KISWebSocketClient(self.account_info)
-            
-        except Exception as e:
-            logger.error(f"초기화 중 오류 발생: {str(e)}")
-            raise
+        pass
             
     async def start_monitoring(self):
         """VI 모니터링 시작"""
@@ -48,14 +39,14 @@ class VIMonitor:
             logger.info("WebSocket 연결이 설정되었습니다.")
             
             # 2. VI 데이터 구독
-            await self.ws_client.subscribe_vi_data()
+            await self.ws_client.subscribe_vi_stock()
             logger.info("VI 데이터 구독을 시작합니다.")
             
             # 3. 데이터 수신 대기
             while not self._closed:
                 try:
-                    data = await self.ws_client.receive_data()
-                    await self.process_vi_data(data)
+                    vi_stock = await self.ws_client.receive_vi_stock()
+                    await self.ws_client.subscribe_stock_ccld(vi_stock)
                 except asyncio.CancelledError:
                     break
                 except Exception as e:
@@ -107,10 +98,25 @@ class VIMonitor:
                 await self.ws_client.disconnect()
                 logger.info("WebSocket 연결이 종료되었습니다.")
             
-            # 2. 인증 서비스 종료
-            await self.auth_service.close()
-            logger.info("인증 서비스가 종료되었습니다.")
-            
             # 3. 리소스 정리
             self.active_symbols.clear()
-            logger.info("✅ VI 모니터링이 완전히 종료되었습니다.") 
+            logger.info("✅ VI 모니터링이 완전히 종료되었습니다.")
+
+
+    async def process_data(self, data: Dict[str, Any]) -> None:
+        """데이터 처리
+        
+        Args:
+            data: 처리할 데이터 딕셔너리
+        """
+        await self.process_vi_data(data)
+
+    async def cleanup(self):
+        """리소스 정리"""
+        try:
+            if self.ws_client:
+                await self.ws_client.close()
+            logger.info("리소스가 정리되었습니다.")
+        except Exception as e:
+            logger.error(f"리소스 정리 중 오류 발생: {str(e)}")
+            raise 

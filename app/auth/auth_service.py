@@ -9,6 +9,7 @@ from datetime import datetime, timezone, timedelta
 from .models import AccountInfo
 from app.common.constants import APIConfig, EnvKeys
 from app.common.utils import save_account_info_to_env
+from app.kis_api.tr import get_approval_key
 from dotenv import load_dotenv
 
 class AuthService:
@@ -18,13 +19,17 @@ class AuthService:
     HTTP 세션 관리와 인증 토큰 관리를 수행합니다.
     """
     
-    def __init__(self, base_url: str = APIConfig.EXTERNAL_BASE_URL):
+    def __init__(
+            self, 
+            account_info: str = None,
+            base_url: str = None
+        ):
         """
         Args:
             base_url: API 기본 URL (기본값: APIConfig.EXTERNAL_BASE_URL)
         """
         load_dotenv()
-        self.base_url = base_url
+        self.base_url = APIConfig.EXTERNAL_BASE_URL
         self._session: Optional[aiohttp.ClientSession] = None
         self.account_info: Optional[AccountInfo] = None
         self.logger = logging.getLogger("AuthService")
@@ -167,7 +172,7 @@ class AuthService:
             saved_account = self._load_saved_account_info()
             if saved_account:
                 self.account_info = saved_account
-                self.logger.info("저장된 계좌 정보를 사용합니다.")
+                self.logger.info("계좌 정보가 유효하여 저장된 계좌 정보를 사용합니다.")
                 return saved_account
                 
             # 2. 새로운 인증 수행
@@ -248,6 +253,37 @@ class AuthService:
         except Exception as e:
             self.logger.error(f"로그인 요청 중 오류 발생: {str(e)}")
             raise
+
+
+    def _update_approval_key(self) -> None:
+        """approval_key 발급"""
+        try:
+            self.account_info.approval_key = get_approval_key(
+                app_key=self.account_info.app_key,
+                app_secret=self.account_info.app_secret,
+                is_live=self.account_info.is_live
+            )
+            save_account_info_to_env(
+                approval_key=self.account_info.approval_key,
+                kis_access_token=self.account_info.kis_access_token,
+                access_token_expired=self.account_info.access_token_expired,
+                hts_id=self.account_info.hts_id,
+                app_key=self.account_info.app_key,
+                app_secret=self.account_info.app_secret,
+                is_live=self.account_info.is_live,
+                cano=self.account_info.cano,
+                acnt_prdt_cd=self.account_info.acnt_prdt_cd,
+                acnt_type=self.account_info.acnt_type,
+                acnt_name=self.account_info.acnt_name,
+                owner_name=self.account_info.owner_name,
+                owner_id=self.account_info.owner_id,
+                id=self.account_info.id,
+                discord_webhook_url=self.account_info.discord_webhook_url,
+            )
+            self.logger.info("✅ Approval key 발급 완료")
+        except Exception as e:
+            self.logger.error(f"⚠ Approval key 발급 실패: {str(e)}")
+            raise
             
     async def _get_account_info(self, access_token: str) -> AccountInfo:
         """계좌 정보 조회
@@ -304,6 +340,8 @@ class AuthService:
                     discord_webhook_url=account_data.get("discord_webhook_url", ""),
                     is_active=account_data.get("is_active", True)
                 )
+
+                print(account_info)
                 
                 self.logger.info(f"계좌 정보 조회 성공 (계좌: {account_info.cano})")
                 return account_info
