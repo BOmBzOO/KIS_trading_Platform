@@ -27,9 +27,7 @@ def get_approval_key(app_key: str, app_secret: str, is_live: bool = True) -> str
         response.raise_for_status()  # HTTP 오류 체크
         
         approval_key = response.json()["approval_key"]
-        logger.info(f"✅ Approval key 발급 성공 ({'모의' if not is_live else '실전'})")
         return approval_key
         
     except requests.exceptions.RequestException as e:
-        logger.error(f"⚠ Approval key 발급 실패: {str(e)}")
         raise 

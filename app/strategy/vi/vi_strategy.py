@@ -36,17 +36,20 @@ class VITrading(BaseStrategy):
         try:
             # 1. WebSocket 연결
             await self.ws_client.connect()
-            logger.info("WebSocket 연결이 설정되었습니다.")
+            logger.info("✅ WebSocket 연결이 설정되었습니다.")
             
             # 2. VI 데이터 구독
             await self.ws_client.subscribe_vi_stock()
-            logger.info("VI 데이터 구독을 시작합니다.")
+            logger.info("✅ VI 데이터 구독을 시작합니다.")
             
             # 3. 데이터 수신 대기
             while not self._closed:
                 try:
                     vi_stock = await self.ws_client.receive_vi_stock()
-                    await self.ws_client.subscribe_stock_ccld(vi_stock)
+                    if vi_stock:
+                        await self.ws_client.subscribe_stock_ccld(vi_stock)
+                    else:
+                        pass
                 except asyncio.CancelledError:
                     break
                 except Exception as e:

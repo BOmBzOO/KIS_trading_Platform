@@ -173,6 +173,7 @@ class AuthService:
             if saved_account:
                 self.account_info = saved_account
                 self.logger.info("계좌 정보가 유효하여 저장된 계좌 정보를 사용합니다.")
+                self._update_approval_key()
                 return saved_account
                 
             # 2. 새로운 인증 수행
@@ -203,6 +204,8 @@ class AuthService:
                 is_active=self.account_info.is_active
             )
             self.logger.info(f"새로운 계좌 정보가 저장되었습니다. (계좌: {self.account_info.cano})")
+
+            self._update_approval_key()
             
             return self.account_info
             
@@ -341,7 +344,7 @@ class AuthService:
                     is_active=account_data.get("is_active", True)
                 )
 
-                print(account_info)
+                # print(account_info)
                 
                 self.logger.info(f"계좌 정보 조회 성공 (계좌: {account_info.cano})")
                 return account_info
